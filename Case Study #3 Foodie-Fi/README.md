@@ -6,3 +6,7 @@ Check below link for more information about this case study:
 https://8weeksqlchallenge.com
 
 */
+
+-------------------------------------------
+-- A. Data Analysis Questions --
+-------------------------------------------
