@@ -13,7 +13,7 @@ A. Data Analysis Questions
 
 1. How many customers has Foodie-Fi ever had?
 
-'''sql
+ ```sql
 SELECT COUNT(DISTINCT customer_id) AS distinct_customers
 FROM subscriptions
-'''
+ ```
