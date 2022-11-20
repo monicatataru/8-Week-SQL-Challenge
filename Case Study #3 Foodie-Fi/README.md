@@ -8,5 +8,12 @@ https://8weeksqlchallenge.com
 */
 
 -------------------------------------------
--- A. Data Analysis Questions --
+A. Data Analysis Questions
 -------------------------------------------
+
+1. How many customers has Foodie-Fi ever had?
+
+'''sql
+SELECT COUNT(DISTINCT customer_id) AS distinct_customers
+FROM subscriptions
+'''
