@@ -129,6 +129,12 @@ SELECT *
 INTO #annual_plan
 FROM cte
 ```
+|customer_id|plan_id|amount	|prev_plan_id|start_date|end_date|payment_date|
+|-----------|-------|-------|-----------|----------|--------|-----------|
+|2	|3|	199.00	|0|	2020-09-27|	2020-12-31| 2020-09-27|
+|9	|3|	199.00	|0|	2020-12-14|	2020-12-31|	2020-12-14|
+|16	|3|	199.00	|1|	2020-10-21|	2020-12-31|	2020-10-21|
+|17	|3|	199.00	|1|	2020-12-11|	2020-12-31|	2020-12-11|
 
 ---
 ```sql
@@ -146,6 +152,15 @@ INTO #all_payments
 FROM cte
 ```
 
+|customer_id|plan_id|amount|prev_plan_id|start_date|end_date|payment_date|
+|-----------|-------|-------|-----------|----------|--------|-----------|
+|1	|1|	9.90|	0|	2020-08-08|	2020-12-31|	2020-08-08|
+|1	|1|	9.90|	0|	2020-08-08|	2020-12-31|	2020-09-08|
+|1	|1|	9.90|	0|	2020-08-08|	2020-12-31|	2020-10-08|
+|1	|1|	9.90|	0|	2020-08-08|	2020-12-31|	2020-11-08|
+|1	|1|	9.90|	0|	2020-08-08|	2020-12-31|	2020-12-08|
+|2	|3|	199.00|	0|	2020-09-27|	2020-12-31|	2020-09-27|
+
 ---
 ```sql
 -- correct the amount for the users that upgrade from basic to pro plans       
@@ -156,9 +171,12 @@ WITH cte AS
         p.plan_id, 
         plan_name,
         payment_date,
-        CASE WHEN p.plan_id IN (2,3) AND (LAG(p.plan_id) OVER (PARTITION BY customer_id
-                                                         ORDER BY start_date) ) = 1
-                                                    THEN amount - 9.90 
+        CASE WHEN p.plan_id IN (2,3) 
+                AND (LAG(p.plan_id) OVER (PARTITION BY customer_id
+                                        ORDER BY start_date) ) = 1
+                AND (LAG(DATEPART(month, payment_date)) OVER (PARTITION BY customer_id
+                                                        ORDER BY start_date)) = DATEPART(month, start_date)                    
+           THEN amount - 9.90 
         ELSE amount END AS amount,
         ROW_NUMBER() OVER (PARTITION BY customer_id
                     ORDER BY payment_date) AS payment_order
@@ -172,3 +190,10 @@ FROM cte
 WHERE DATEPART(year, payment_date) = 2020 
 ORDER by customer_id, payment_date
 ```
+|customer_id| plan_id |plan_name| payment_date|	amount |payment_order|
+|-----------|-------|----------|-----------|----------|-----------|
+|46	|1|	basic monthly|	2020-04-26|	9.90|	1|
+|46	|1| basic monthly|	2020-05-26|	9.90|	2|
+|46	|1|	basic monthly|	2020-06-26|	9.90|	3|
+|46	|2|	pro monthly| 2020-07-06	|19.90|	4|
+|46	|3|	pro annual| 2020-08-06|	199.00|	5|
