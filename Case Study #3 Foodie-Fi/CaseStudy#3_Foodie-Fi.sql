@@ -3005,9 +3005,12 @@ WITH cte AS
         p.plan_id, 
         plan_name,
         payment_date,
-        CASE WHEN p.plan_id IN (2,3) AND (LAG(p.plan_id) OVER (PARTITION BY customer_id
-                                                         ORDER BY start_date) ) = 1
-                                                    THEN amount - 9.90 
+        CASE WHEN p.plan_id IN (2,3) 
+             AND (LAG(p.plan_id) OVER (PARTITION BY customer_id
+                                       ORDER BY start_date) ) = 1
+             AND (LAG(DATEPART(month, payment_date)) OVER (PARTITION BY customer_id
+                                                        ORDER BY start_date)) = DATEPART(month, start_date)                    
+        THEN amount - 9.90                                      
         ELSE amount END AS amount,
         ROW_NUMBER() OVER (PARTITION BY customer_id
                     ORDER BY payment_date) AS payment_order
