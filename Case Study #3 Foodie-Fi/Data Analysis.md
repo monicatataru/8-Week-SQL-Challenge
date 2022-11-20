@@ -61,6 +61,14 @@ WHERE DATEPART(year, start_date) >= 2021
 GROUP BY s.plan_id, plan_name
 ORDER BY s.plan_id
  ```
+ 
+ |plan_id	|plan_name	|plan_count|
+  |--------|--------|-------|
+|1	| basic monthly	| 8|
+|2 |	pro monthly	| 60|
+|3	| pro annual	|63|
+|4	| churn	|71|
+ 
 ---
 4. What is the customer count and percentage of customers who have churned rounded to 1 decimal place?
  ```sql
@@ -70,6 +78,10 @@ ORDER BY s.plan_id
 FROM subscriptions
 WHERE plan_id = 4
  ```
+ |customers_churn	|percentage_churn|
+  |------------|-------------|
+|307	|30.7|
+ 
 ---
 5. How many customers have churned straight after their initial free trial - what percentage is this rounded to the nearest whole number?
  ```sql
@@ -91,6 +103,11 @@ WHERE plan_id = 4
  SELECT SUM(churned_after_trial) AS churned_after_trial, 100*SUM(churned_after_trial)/COUNT(*) AS perc_churned_after_trial
  FROM cte2
  ```
+ 
+ |churned_after_trial|	perc_churned_after_trial|
+ |------------|-------------|
+|92	|9 |
+ 
 ---
 6. What is the number and percentage of customer plans after their initial free trial?
  ```sql
@@ -118,6 +135,14 @@ SELECT
 FROM cte2
 GROUP BY plan_id
  ```
+ 
+ |plan_id	|customers	|perc|
+ |--------|--------|-------|
+|3	|37	|3.7|
+|1	|546	|54.6|
+|4	|92	|9.2|
+|2	|325	|32.5|
+ 
 ---
 7. What is the customer count and percentage breakdown of all 5 plan_name values at 2020-12-31?
  ```sql
@@ -144,6 +169,15 @@ FROM cte2
 GROUP BY plan_id
 ORDER BY 1
  ```
+ 
+ |plan_id	|customers |perc |
+  |--------|--------|-------|
+|0	|19	|1.9|
+|1	|224	|22.4|
+|2	|326	|32.6|
+|3	|195	|19.5|
+|4	|236	|23.6|
+ 
 ---
 8. How many customers have upgraded to an annual plan in 2020?
  ```sql
@@ -152,6 +186,11 @@ SELECT COUNT(DISTINCT customer_id) AS annual_plan_customers
 FROM subscriptions
 WHERE DATEPART(year, start_date) = 2020 AND plan_id = 3
  ```
+ 
+ |annual_plan_customers|
+ |---------------------|
+|195|
+ 
 ---
 9. How many days on average does it take for a customer to an annual plan from the day they join Foodie-Fi?
  ```sql
@@ -166,6 +205,10 @@ SELECT AVG(DATEDIFF(day,first_joined, start_date)) as avg_no_of_days
 FROM cte
 WHERE plan_id = 3
  ```
+ 
+|avg_no_of_days|
+|----------------|
+|104|
 ---
 10. Can you further breakdown this average value into 30 day periods (i.e. 0-30 days, 31-60 days etc)
  ```sql
@@ -195,6 +238,20 @@ FROM bins
 GROUP BY bins
  ```
 
+|no_of_days	|customers_count|
+|----------|------------|
+|0-30	|48|
+|30-60	|25|
+|60-90	|33|
+|90-120	|35|
+|120-150	|43|
+|150-180	|35|
+|180-210	|27|
+|210-240	|4|
+|240-270	|5|
+|270-300	|1|
+|300-330	|1|
+|330-360	|1|
 
 ---
 11. How many customers downgraded from a pro monthly to a basic monthly plan in 2020?
@@ -212,3 +269,6 @@ WITH cte AS
  FROM cte 
  WHERE plan_id = 1 AND prev_plan_id=2 AND DATEPART(year, start_date) = 2020
 ```
+|cust_downgraded|
+|----------|
+|0|
