@@ -60,4 +60,31 @@ GROUP BY region_name
 
 4. How many days on average are customers reallocated to a different node?
 
+```sql
+-- for each customer, we'll keep only the records when they are reallocated to a different node
+-- then, calculate the difference in days between the start_dates of two consecutive allocations
+
+WITH cte AS
+(
+    -- if previous node is the same as the current node, then counter = 0 and the record will be further ignored
+    SELECT *,
+        CASE WHEN LAG(node_id) OVER (PARTITION BY customer_id
+                        ORDER BY  start_date)=node_id THEN 0 ELSE 1 END AS counter
+    FROM customer_nodes
+),
+cte2 AS(
+    SELECT *,
+    DATEDIFF(day, LAG(start_date) OVER (PARTITION BY customer_id
+                            ORDER BY start_date), start_date) AS days_v
+    FROM cte 
+    WHERE counter = 1
+)
+select AVG(days_v) AS avg_days
+FROM cte2
+```
+
+|avg_days|
+|--------|
+|18|
+
 5. What is the median, 80th and 95th percentile for this same reallocation days metric for each region? 
