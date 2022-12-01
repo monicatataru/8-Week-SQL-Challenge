@@ -225,3 +225,75 @@ ORDER BY txn_month
 |2	|181|
 |3	|192|
 |4	|70|
+
+4. What is the closing balance for each customer at the end of the month?
+
+```sql
+-- create a temp table with all the month ends
+DROP TABLE IF EXISTS #temp_end_of_month
+
+WITH cte AS (
+SELECT 
+    customer_id,
+    EOMONTH(MIN(txn_date)) AS min_date,
+    max_txn_date = (SELECT MAX(txn_date) from customer_transactions)
+FROM customer_transactions
+GROUP BY customer_id
+UNION ALL
+
+SELECT 
+    customer_id,
+    EOMONTH(DATEADD(month, 1,min_date)) AS min_date,
+    max_txn_date
+    FROM cte
+    where DATEPART(m,min_date) < datePART(m, max_txn_date)
+)
+SELECT customer_id, min_date AS end_of_month
+INTO #temp_end_of_month
+FROM cte
+```
+
+```sql
+-- in the table previously created, bring the monthly variation for each customer
+-- then, calculate the closing balance as the running sum of the monthly variations
+WITH cte AS (
+SELECT 
+    #temp_end_of_month.customer_id,
+    end_of_month,
+    COALESCE(monthly_variation,0) AS monthly_variation
+FROM #temp_end_of_month
+LEFT JOIN 
+(SELECT 
+    customer_id, 
+    EOMONTH(txn_date) AS txn_month,
+    -- if the transaction is a purchase or an withdrawal, then subtract the amount
+    SUM(CASE WHEN txn_type = 'deposit' THEN txn_amount 
+            ELSE -txn_amount END) AS monthly_variation
+FROM customer_transactions
+GROUP BY customer_id, EOMONTH(txn_date)) txn_tab
+ON #temp_end_of_month.customer_id = txn_tab.customer_id
+    AND txn_month = end_of_month
+),
+running_sum_cte AS (
+SELECT *,
+    SUM(monthly_variation) OVER (PARTITION BY customer_id
+                                ORDER BY end_of_month) AS closing_balance
+FROM cte
+)
+SELECT 
+    customer_id, 
+    end_of_month, 
+    closing_balance
+FROM running_sum_cte
+ORDER BY customer_id, end_of_month
+```
+|customer_id|end_of_month|closing_balance|
+|----------|----------|------------|
+|1	|2020-01-31	|312|
+|1	|2020-02-29	|312|
+|1	|2020-03-31	|-640|
+|1	|2020-04-30	|-640|
+|2	|2020-01-31	|549|
+|2	|2020-02-29	|549|
+|2	|2020-03-31	|610|
+|2	|2020-04-30	|610|
