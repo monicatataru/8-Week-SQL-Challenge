@@ -129,7 +129,7 @@ FROM cte3
 
 
 -------------------------------------------
-A. Customer Nodes Exploration
+B. Customer Transactions
 -------------------------------------------
 
  1. What is the unique count and total amount for each transaction type?
