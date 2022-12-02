@@ -297,3 +297,55 @@ ORDER BY customer_id, end_of_month
 |2	|2020-02-29	|549|
 |2	|2020-03-31	|610|
 |2	|2020-04-30	|610|
+
+
+5. What is the percentage of customers who increase their closing balance by more than 5%?
+
+```sql
+-- we'll calculate the percentage of customers that had a 5% increase in their closing month from the first month 
+
+WITH cte AS (
+SELECT 
+    #temp_end_of_month.customer_id,
+    end_of_month,
+    COALESCE(monthly_variation,0) AS monthly_variation
+FROM #temp_end_of_month
+LEFT JOIN 
+(SELECT 
+    customer_id, 
+    EOMONTH(txn_date) AS txn_month,
+    -- if the transaction is a purchase or an withdrawal, then subtract the amount
+    SUM(CASE WHEN txn_type = 'deposit' THEN txn_amount 
+            ELSE -txn_amount END) AS monthly_variation
+FROM customer_transactions
+GROUP BY customer_id, EOMONTH(txn_date)) txn_tab
+ON #temp_end_of_month.customer_id = txn_tab.customer_id
+    AND txn_month = end_of_month
+),
+running_sum_cte AS (
+SELECT *,
+    SUM(monthly_variation) OVER (PARTITION BY customer_id
+                                ORDER BY end_of_month) AS closing_balance
+FROM cte
+),
+balance_cte AS (
+SELECT *,
+    LEAD(closing_balance, 3) OVER (PARTITION BY customer_id
+                                ORDER BY end_of_month) AS final_balance,
+    ROW_NUMBER() OVER (PARTITION BY customer_id
+                        ORDER BY end_of_month) AS row_n                    
+FROM running_sum_cte
+),
+variation AS (
+SELECT customer_id, (CASE WHEN 100*(final_balance-closing_balance)/closing_balance > 5 THEN 1
+                    ELSE 0 END ) AS balance_variation
+FROM balance_cte
+WHERE row_n = 1
+)
+SELECT CAST(100* SUM(balance_variation) AS FLOAT)/COUNT(customer_id) AS over_5_perc_balance_increase
+FROM variation
+```
+
+|over_5_perc_balance_increase|
+|-------------------------|
+|44.2|
